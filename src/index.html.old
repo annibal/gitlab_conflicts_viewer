@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>i9xp Conflict MR</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        container {
+            max-width: 500px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        footer {
+            color: #888;
+            font-size: 12px;
+            font-family: monospace;
+            padding-left: 4em;
+            padding-top: 1em;
+            line-height: 0.5;
+        }
+
+        a.mr {
+            display: block;
+            margin: 1em;
+            padding: .3em 1.4em;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 6px rgba(0,16,145,0.03);
+            text-decoration: none;
+            font-size: 1.2em;
+            box-sizing: border-box;
+            border-left: 5px solid darkgoldenrod;
+        }
+
+        p.mr-title {text-decoration: underline;}
+
+        p.mr-details {
+            color: #444;
+            text-decoration: none;
+        }
+
+        span.mr-reference {
+            color: #AAA;
+        }
+
+        span.mr-author {
+            display: block;
+            font-size: 0.8em;
+        }
+
+        span.mr-date {color: darkgoldenrod;}
+
+        img.mr-author-avatar {
+            width: 1.5em;
+            height: 1.5em;
+            vertical-align: middle;
+        }
+
+        header {
+            padding: 0 1.5em;
+        }
+
+        h2.status-title {
+            color: #999;
+            font-weight: 200;
+            font-size: 1.2em;
+        }
+
+        a#ref_projeto, span#ref_total {
+            color: darkgoldenrod;
+            font-weight: bold
+        }
+
+        section#ref_errors a {
+            color: tomato;
+            font-weight: bold;
+            margin: 0;
+            padding: 1em 1em 0px;
+            display: block;
+            opacity: .8;
+            background: #f1e0dd;
+        }
+
+        section#ref_errors a:last-child {
+            padding-bottom: 0.8em;
+            border-bottom: 1px solid tomato;
+        }
+
+        section#ref_errors a:first-child:before {
+            content: 'Erros (clique para ver mais):';
+            display: block;
+            margin-bottom: 1em;
+            font-size: 1.5em;
+        }
+
+        section#ref_errors a:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <section id="ref_errors"></section>
+    <container>
+        <header>
+            <h2>
+                Merge Requests com conflito
+            </h2>
+            <h2 class="status-title">
+                Projeto: <a id="ref_projeto">{projeto-details}</a>, MRs com conflito: <span id="ref_total">n/a</span>
+            </h2>
+        </header>
+        <section id="ref_list">
+            <a class="mr" id="ref_preload_card">Loading...</a>
+        </section>
+        <footer>
+            <p>O que fazer:</p>
+            <p>git checkout &lt;branch-com-conflito&gt;</p>
+            <p>git fetch -vp</p>
+            <p>git pull origin &lt;feature-branch&gt;</p>
+            <p># resolve the conflicts</p>
+            <p>git add .</p>
+            <p>git commit -m "conflito resolvido"</p>
+            <p>git push</p>
+        </footer>
+    </container>
+    
+    <script>
+        (() => {
+            const html = str => new DOMParser().parseFromString(str, 'text/html').body.children[0]
+            const gitlabI9XP_url = 'https://gitlab.i9xp.com.br'
+
+            // Get params from url
+            let params = (new URL(document.location)).searchParams;
+            const projetoUnilever_site_id = (() => {
+                const p = params.get('project')
+                if (p == null || isNaN(p)) {
+                    return 111; // unilever/site
+                } else {
+                    return p
+                }
+            })()
+            const teamLabelStr = params.get('time')
+            const token = params.get('token')
+            console.log({teamLabelStr, token})
+
+
+            // Validate params
+            let hasErrors = false;
+            let showError = (txt,url) => ref_errors.appendChild(html(`<a target="_blank" href="${url}">( ! ) : ${txt}</a>`))
+            if (teamLabelStr == null || teamLabelStr.length == 0) {
+                showError('Faltou a label do time', 'https://gitlab.i9xp.com.br/unilever/site/-/labels');
+                hasErrors = true
+            }
+            if (token == null || token.length == 0) {
+                showError('Faltou o token de acesso', 'https://code.ini.uzh.ch/help/user/profile/personal_access_tokens.html');
+                hasErrors = true
+            }
+            if (hasErrors) {
+                ref_preload_card.innerHTML = 'request falhou'
+                return;
+            }
+
+            
+            // Fetchers
+            const getMergeRequests = () => {
+                const endpoint = `api/v4/projects/${projetoUnilever_site_id}/merge_requests`
+                const qs = new URLSearchParams({
+                    'per_page': 100,
+                    'state': 'opened',
+                    'labels': teamLabelStr,
+                    'private_token': token,
+                }).toString()
+                const url = `${gitlabI9XP_url}/${endpoint}?${qs}`
+                return fetch(url)
+                    .then(r => r.json())
+                    .then(r => {
+                        console.log('Got Merge Requests:')
+                        console.log(r);
+                        return r
+                    })
+            }
+
+            const getProjects = () => {
+                const endpoint = `api/v4/projects`
+                const qs = new URLSearchParams({
+                    'per_page': 100,
+                    'private_token': token,
+                }).toString()
+                const url = `${gitlabI9XP_url}/${endpoint}?${qs}`
+                return fetch(url)
+                    .then(r => r.json())
+                    .then(r => {
+                        if (r.message != null && r.message != '' && r.message.includes('401')) {
+                            showError('Token não funciona', 'https://code.ini.uzh.ch/help/user/profile/personal_access_tokens.html')
+                        }
+                        return r;
+                    })
+                    .then(r => {
+                        console.log('Got Projects:')
+                        console.log(r);
+                        return r
+                    })
+            }
+            
+
+            // Actually do stuff
+            getMergeRequests()  
+            .then(r => r.filter(p => p.merge_status.includes('cannot')))
+            .then(r => {
+                ref_total.innerHTML = r.length;
+                return r;
+            })
+            .then(r => ref_list.innerHTML = r.map(p => `
+                <a class="mr" href="${p.web_url}">
+                    <p class="mr-title">${p.title}</p>
+                    <p class="mr-details">
+                        <span class="mr-reference">${p.reference}</span>
+                        <span class="mr-date">Atualizado em ${new Date(p.updated_at).toLocaleString()}</span>
+                        <span class="mr-author">por ${p.author.name} <img src="${p.author.avatar_url}" class="mr-author-avatar"/></span>
+                    </p>
+                </a>
+            `).join(''))
+
+            getProjects()
+            .then(r => r.find(p => p.id == projetoUnilever_site_id))
+            .then(r => ref_projeto.innerHTML = r.name_with_namespace)
+        })()
+    </script>
+</body>
+</html>
