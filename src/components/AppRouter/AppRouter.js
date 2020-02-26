@@ -1,8 +1,8 @@
 import React from 'react'
-import { Switch, Route, Redirect } from 'react-router-dom'
+import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom'
 import { getRoutes } from './RoutesProvider'
 
-import MergeRequestsPage from '../MergeRequestsPage/MergeRequestsPage'
+import MergeRequestsPage from '../MergeRequests/MergeRequestsPage'
 
 function AppRouter() {
 
@@ -11,14 +11,20 @@ function AppRouter() {
     const routePrefix = '/';
 
     return (
+      <Router>
         <Switch>
-            <Route path={routePrefix + Routes.MERGE_REQUESTS}>
-                <MergeRequestsPage />
-            </Route>
-            <Route path="/"><Redirect to={mainRoute} /></Route>
-            <Route path=""><Redirect to={mainRoute} /></Route>
+          <Route path={routePrefix + Routes.MERGE_REQUESTS}>
+            <MergeRequestsPage />
+          </Route>
+          <Route path="/">
+            <Redirect to={mainRoute} />
+          </Route>
+          <Route path="">
+            <Redirect to={mainRoute} />
+          </Route>
         </Switch>
-    )
+      </Router>
+    );
 }
 
 export default AppRouter

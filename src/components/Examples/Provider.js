@@ -1,21 +1,24 @@
 import getConfig from '../../getConfig';
+import { buildProvider } from '../../Provider'
 
 export const providerFactory = () => {
 
+    
+
     const config = getConfig();
-    const params = new URLSearchParams({
-        'per_page': 100,
-        'state': 'opened',
-        'private_token': config.token
-    }).toString();
-    const url = `${config.api}${config.path.projects()}?${params}`;
+    const params = extendQueryParams({
+        'state': 'opened'
+    })
+    const headers = extendHeaders()
+    const url = buildUrl({
+        pathname: config.path.projects(),
+        search: params
+    });
 
     return {
         request: fetch(url, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${config.token}`,
-            }
+            headers
         }).then(r => r.json())
     }
 }

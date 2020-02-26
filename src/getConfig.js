@@ -7,7 +7,7 @@ export default function getConfig() {
         'token': '123abc',
         'path': {
             'projects': () => '/projects',
-            'mergeRequests': projectId => `/projects/${projectId}/mergeRequests`
+            'mergeRequests': (projectId) => `/projects/${projectId}/mergeRequests`
         }
     }
 }

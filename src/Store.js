@@ -3,7 +3,7 @@ import thunk from 'redux-thunk';
 
 import ProjectsReducer from './components/Projects/ProjectsReducer'
 import MergeRequestsReducer from './components/MergeRequests/MergeRequestsReducer'
-import FiltersReducer from './components/filters/FiltersReducer'
+import FiltersReducer from './components/Filters/FiltersReducer'
 
 export const setupReducers = () => {
     const storeTree = combineReducers({
